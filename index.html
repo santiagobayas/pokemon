@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="referrer" content="no-referrer" />
+  <title>PokéBot Aventura - Aprende Robótica</title>
+  
+  <!-- Tipografías -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@800;900&display=swap" rel="stylesheet">
+  
+  <!-- Estilos Modulares -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div id="game-container">
+  <!-- Botón Global de Sonido y Música -->
+  <button id="sound-toggle-btn" onclick="toggleSound()" title="Silenciar / Activar Sonido">🔊</button>
+
+  <!-- 1. PANTALLA INICIAL -->
+  <div id="title-screen" class="screen active">
+    <div class="title-logo">POKÉ-BOT</div>
+    <div class="subtitle">¡Aventura y Retos de Robótica!</div>
+    <img class="hero-img" src="assets/pokemon/25.png" onerror="this.src='https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/25.png'" alt="Pikachu" />
+    <button class="btn-main" onclick="goToSelectScreen()">JUGAR AHORA</button>
+  </div>
+
+  <!-- 2. SELECCIÓN DE PERSONAJE CARRUSEL (12 POKÉMON) -->
+  <div id="select-screen" class="screen">
+    <div class="screen-header">Elige tu Pokémon</div>
+    
+    <div class="carousel-stage">
+      <button class="carousel-arrow" onclick="carouselPrev()">◀</button>
+      
+      <div class="carousel-card">
+        <img id="carousel-img" src="" alt="Pokemon" />
+        <div class="carousel-name" id="carousel-name">Pikachu</div>
+        <div class="carousel-indicator" id="carousel-indicator">1 / 12</div>
+      </div>
+      
+      <button class="carousel-arrow" onclick="carouselNext()">▶</button>
+    </div>
+
+    <div style="display:flex; gap:16px;">
+      <button class="btn-main" style="background:#64748b; border-color:#94a3b8; box-shadow:0 6px 0 #475569; font-size:1.1rem; padding:10px 24px;" onclick="showScreen('title-screen')">Volver</button>
+      <button class="btn-main" style="font-size:1.25rem; padding:10px 38px;" onclick="startAdventure()">¡Elegir y Jugar! ➔</button>
+    </div>
+  </div>
+
+  <!-- 3. PLATAFORMAS CANVAS CON CÁMARA SCROLL -->
+  <div id="platformer-screen" class="screen">
+    <canvas id="gameCanvas" width="960" height="600"></canvas>
+    
+    <div id="hud">
+      <div class="hud-tag" id="hud-name">Pikachu</div>
+      <div class="hud-tag">Rivales: <span id="hud-rivals" style="color:#f87171;">0</span> / 6</div>
+      <div class="hud-tag">Tuercas: <span id="hud-gears" style="color:#facc15;">0</span> / 8</div>
+    </div>
+
+    <div id="touch-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-btn" onmousedown="setTouch('left', true)" onmouseup="setTouch('left', false)" ontouchstart="setTouch('left', true)" ontouchend="setTouch('left', false)">◀</div>
+        <div class="ctrl-btn" onmousedown="setTouch('right', true)" onmouseup="setTouch('right', false)" ontouchstart="setTouch('right', true)" ontouchend="setTouch('right', false)">▶</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-btn" onmousedown="setTouch('jump', true)" onmouseup="setTouch('jump', false)" ontouchstart="setTouch('jump', true)" ontouchend="setTouch('jump', false)" style="background: linear-gradient(180deg,#4ade80,#22c55e); color:white; border-color:#15803d; box-shadow:0 6px 0 #15803d;">▲</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. BATALLA -->
+  <div id="battle-screen" class="screen">
+    <canvas id="battle-effects-canvas" width="960" height="600"></canvas>
+
+    <div class="arena-top">
+      <div class="battle-stadium-ring">
+        <div class="pokeball-circle"></div>
+      </div>
+
+      <div class="combatant">
+        <div class="hp-box">
+          <div style="font-family:'Fredoka One', cursive; font-size:1.1rem; color:#facc15;" id="b-pname">Pikachu</div>
+          <div class="hp-bar-bg"><div class="hp-bar-fill" id="b-php"></div></div>
+        </div>
+        <img id="b-pimg" src="" alt="Player" />
+      </div>
+
+      <div style="font-family:'Fredoka One', cursive; font-size:2.4rem; color:#facc15; text-shadow:3px 3px 0 #000; z-index:2;">VS</div>
+
+      <div class="combatant">
+        <div class="hp-box">
+          <div style="font-family:'Fredoka One', cursive; font-size:1.1rem; color:#f87171;" id="b-ename">Meowth</div>
+          <div class="hp-bar-bg"><div class="hp-bar-fill" id="b-ehp"></div></div>
+        </div>
+        <img id="b-eimg" src="" alt="Rival" />
+      </div>
+    </div>
+
+    <div class="arena-bottom">
+      <div class="battle-prompt" id="b-msg">¿Qué ataque quieres usar?</div>
+      <div class="battle-grid" id="b-moves-grid"></div>
+    </div>
+  </div>
+
+  <!-- 5. PREGUNTA ROBÓTICA MODAL -->
+  <div id="question-modal">
+    <div class="q-card">
+      <div style="font-family:'Fredoka One', cursive; font-size:1rem; color:#3b82f6; margin-bottom:4px; letter-spacing:1px;">⚡ RETO DE ROBÓTICA ⚙️</div>
+      <div class="q-text" id="q-title">¿Qué le da energía a un robot?</div>
+      <div class="q-grid" id="q-buttons"></div>
+    </div>
+  </div>
+
+  <!-- 6. PANTALLA GANASTE -->
+  <div id="victory-screen" class="screen">
+    <canvas id="confetti-canvas" width="960" height="600"></canvas>
+    <div class="badge-icon">🏆⚙️⚡</div>
+    <div class="title-logo" style="margin-bottom:6px; font-size:3.5rem;">¡MISIÓN CUMPLIDA!</div>
+    <div style="font-family:'Fredoka One', cursive; font-size:1.4rem; color:#facc15; margin-bottom:15px;">¡Derrotaste a todos los rivales y recogiste las tuercas!</div>
+    <img id="victory-img" src="" style="width:140px; height:140px; margin-bottom:20px; object-fit:contain; filter:drop-shadow(0 10px 20px rgba(0,0,0,0.5));" alt="Pokemon" />
+    <div style="display:flex; gap:16px; z-index:2;">
+      <button class="btn-main" onclick="restartGame()">Jugar Otra Vez</button>
+      <button class="btn-main" style="background:#3b82f6; border-color:#60a5fa; box-shadow:0 8px 0 #1d4ed8;" onclick="showScreen('title-screen')">Inicio</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Scripts Modulares -->
+<script src="js/audio.js"></script>
+<script src="js/data.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/game.js"></script>
+
+</body>
+</html>
